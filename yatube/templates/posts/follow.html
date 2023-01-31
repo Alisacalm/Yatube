@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Подписки
+{% endblock %}
+
+{% block content %}
+  <h1>Посты избранных авторов</h1>
+  {% for post in page_obj %}
+    {% include 'includes/switcher.html' %}
+    {% include 'includes/post_list.html' %}
+    {% if post.group %}
+      Группа: {{ post.group.title }}
+      <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
+    {% endif %}
+    {% if not forloop.last %}<hr>{% endif %}
+  {% endfor %}
+  {% include 'includes/paginator.html' %}
+{% endblock %}
