@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from sorl.thumbnail import ImageField
 User = get_user_model()
 
 
@@ -8,7 +7,6 @@ class Group(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField()
-
 
     class Meta:
         verbose_name = 'Группа'
@@ -50,7 +48,6 @@ class Post(models.Model):
         blank=True
     )
 
-    
     class Meta:
         ordering = ['-pub_date']
         verbose_name = 'Пост'
@@ -83,7 +80,6 @@ class Comment(models.Model):
         help_text='Ваше имя'
     )
 
-
     class Meta:
         managed = True
         db_table = 'posts_comment'
@@ -99,15 +95,14 @@ class Follow(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='follower',
-        verbose_name = 'Подписчик'
+        verbose_name='Подписчик'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='following',
-        verbose_name = 'На кого подписались'
+        verbose_name='На кого подписались'
     )
-
 
     class Meta:
         managed = True
