@@ -96,7 +96,6 @@ class PostTests(TestCase):
             ),
         ]
 
-
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
@@ -169,8 +168,8 @@ class PostTests(TestCase):
         )
         response = self.authorized_client.get(
             reverse(
-            'posts:post_edit',
-            kwargs={'post_id': post_1.id}
+                'posts:post_edit',
+                kwargs={'post_id': post_1.id}
             )
         )
         form_fields = {
@@ -284,7 +283,7 @@ class PostTests(TestCase):
         unfollow_post_count = Post.objects.filter(
             author__following__user=self.user
         ).count()
-        new_post = Post.objects.create(
+        Post.objects.create(
             text='Новая запись',
             group=self.group,
             author=self.author
@@ -306,4 +305,3 @@ class PostTests(TestCase):
             Post.objects.filter(
                 author__following__user=self.user
             ).count(), unfollow_post_count)
-
