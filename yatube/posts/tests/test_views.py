@@ -237,7 +237,7 @@ class PostViewTests(TestCase):
     def test_auth_can_follow_unfollow(self):
         """Авторизованный пользователь может подписываться и отписываться"""
         count_follow = Follow.objects.count()
-        Follow.objects.create(
+        follow = Follow.objects.create(
             user=self.user_2,
             author=self.author
         )
@@ -248,7 +248,7 @@ class PostViewTests(TestCase):
             )
         )
         self.assertEqual(Follow.objects.count(), count_follow + 2)
-        Follow.objects.delete()
+        follow.delete()
         self.authorized_client.get(
             reverse(
                 'posts:profile_unfollow',
