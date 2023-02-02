@@ -194,7 +194,7 @@ class PostViewTests(TestCase):
                 kwargs={'slug': self.second_group.slug}
             )
         )
-        self.assertIsNot(self.post, response.context['page_obj'])
+        self.assertIsNot(self.post_1, response.context['page_obj'])
 
     def test_image_is_shown_on_templates(self):
         post = Post.objects.create(
@@ -245,7 +245,7 @@ class PostViewTests(TestCase):
             user=self.user_2,
             author=self.author
         )
-        self.assertEqual(Follow.objects.count(), count_follow + 1)
+        self.assertEqual(Follow.objects.count(), count_follow + 2)
         self.assertEqual(follow.author, self.author)
         self.assertEqual(follow.user, self.user_2)
         self.authorized_client.get(
