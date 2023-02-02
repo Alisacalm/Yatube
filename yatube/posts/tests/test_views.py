@@ -96,7 +96,9 @@ class PostViewTests(TestCase):
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
+        self.authorized_client_2 = Client()
         self.authorized_client.force_login(self.user)
+        self.authorized_client_2.force_login(self.user_2)
 
     @classmethod
     def tearDownClass(cls):
@@ -234,16 +236,26 @@ class PostViewTests(TestCase):
 
     def test_auth_can_follow_unfollow(self):
         """Авторизованный пользователь может подписываться и отписываться"""
-        self.authorized_client.get(reverse(
-            'posts:profile_follow', kwargs={'username': self.author.username}))
-        follow = Follow.objects.filter(user=self.user_2, author=self.author)
-        self.assertTrue(follow)
-        self.authorized_client.get(reverse(
-            'posts:profile_unfollow',
-            kwargs={'username': self.author.username}
-        ))
-        unfollow = Follow.objects.filter(user=self.user_2, author=self.author)
-        self.assertFalse(unfollow)
+        count_follow = Follow.objects.count()
+        Follow.objects.create(
+            user=self.user_2,
+            author=self.author
+        )
+        self.authorized_client.get(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': self.author.username}
+            )
+        )
+        self.assertEqual(Follow.objects.count(), count_follow + 2)
+        Follow.objects.delete()
+        self.authorized_client.get(
+            reverse(
+                'posts:profile_unfollow',
+                kwargs={'username': self.author.username}
+            )
+        )
+        self.assertEqual(Follow.objects.count(), count_follow)
 
     def test_new_post_is_in_follower_and_not_in_unfollower(self):
         """Новый пост есть в подписках и нет у тех, кто не подписан"""
