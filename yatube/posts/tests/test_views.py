@@ -1,16 +1,14 @@
 import shutil
 import tempfile
 
-from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user_model
 # from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django import forms
-
-from . .models import Follow, Group, Post
 from posts.forms import PostForm
+from posts.models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -18,11 +16,11 @@ TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
-class PostTests(TestCase):
+class PostViewTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='StasBasov')
+        cls.user = User.objects.create_user(username='Unfollower')
         cls.user_2 = User.objects.create_user(username='Follower')
         cls.author = User.objects.create_user(username='FollowedUser')
         cls.group = Group.objects.create(
@@ -36,7 +34,11 @@ class PostTests(TestCase):
             description='Описание второй группы',
         )
 
-        picture_jpg = (
+        cls.POSTS_ON_FIRST_PAGE = 10
+        cls.POSTS_ON_SECOND_PAGE = 3
+        bulk_of_posts = cls.POSTS_ON_FIRST_PAGE + cls.POSTS_ON_SECOND_PAGE
+
+        small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
             b'\x01\x00\x80\x00\x00\x00\x00\x00'
             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
@@ -45,24 +47,22 @@ class PostTests(TestCase):
             b'\x0A\x00\x3B'
         )
         cls.uploaded = SimpleUploadedFile(
-            name='picture.jpg',
-            content=picture_jpg,
-            content_type='image/jpg'
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
         )
 
-        cls.post_list = []
-        for i in range(1, 14):
-            cls.post = Post(
+        posts = [
+            Post(
                 text='Тестовый текст',
                 group=cls.group,
-                author=cls.user,
-                image=cls.uploaded,
-                id=i,
+                author=cls.author,
+                image=cls.uploaded
             )
-            cls.post_list.append(cls.post)
-        Post.objects.bulk_create(
-            cls.post_list
-        )
+            for obj in range(bulk_of_posts)
+        ]
+        Post.objects.bulk_create(posts, batch_size=bulk_of_posts)
+        cls.post = Post.objects.last()
         cls.templates_page_names = {
             reverse('posts:index'): 'posts/index.html',
             reverse(
@@ -96,17 +96,15 @@ class PostTests(TestCase):
             ),
         ]
 
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
-
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
-        self.authorized_client.force_login(self.user_2)
-        self.authorized_client.force_login(self.author)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def test_pages_use_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -160,27 +158,14 @@ class PostTests(TestCase):
 
     def test_post_edit_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
-        post_1 = Post.objects.create(
-            author=self.user,
-            text='Война и мир изначально назывался «1805 год»',
-            group=self.group,
-            image=self.uploaded
-        )
         response = self.authorized_client.get(
             reverse(
                 'posts:post_edit',
-                kwargs={'post_id': post_1.id}
+                kwargs={'post_id': self.post_1.id}
             )
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.fields.ChoiceField,
-            'image': forms.fields.ImageField
-        }
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context['form'].fields[value]
-                self.assertIsInstance(form_field, expected)
+        self.assertIn('form', response.context)
+        self.assertIsInstance(response.context['form'], PostForm)
 
     def test_first_page_contains_ten_records(self):
         for reverse_name in self.reverse_names:
