@@ -234,28 +234,16 @@ class PostViewTests(TestCase):
 
     def test_auth_can_follow_unfollow(self):
         """Авторизованный пользователь может подписываться и отписываться"""
-        count_follow = Follow.objects.count()
-        self.authorized_client.get(
-            reverse(
-                'posts:profile_follow',
-                kwargs={'username': self.user_2.username}
-            )
-        )
-        follow = Follow.objects.create(
-            user=self.user_2,
-            author=self.author
-        )
-        self.assertEqual(Follow.objects.count(), count_follow + 2)
-        self.assertEqual(follow.author, self.author)
-        self.assertEqual(follow.user, self.user_2)
-        self.authorized_client.get(
-            reverse(
-                'posts:profile_unfollow',
-                kwargs={'username': self.author.username}
-            )
-        )
-        follow.delete()
-        self.assertEqual(Follow.objects.count(), count_follow)
+        self.authorized_client.get(reverse(
+            'posts:profile_follow', kwargs={'username': self.author.username}))
+        follow = Follow.objects.filter(user=self.user_2, author=self.author)
+        self.assertTrue(follow)
+        self.authorized_client.get(reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.author.username}
+        ))
+        unfollow = Follow.objects.filter(user=self.user_2, author=self.author)
+        self.assertFalse(unfollow)
 
     def test_new_post_is_in_follower_and_not_in_unfollower(self):
         """Новый пост есть в подписках и нет у тех, кто не подписан"""
