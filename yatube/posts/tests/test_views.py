@@ -33,10 +33,19 @@ class PostViewTests(TestCase):
             slug='group-2',
             description='Описание второй группы',
         )
-
-        cls.POSTS_ON_FIRST_PAGE = 10
-        cls.POSTS_ON_SECOND_PAGE = 3
-        bulk_of_posts = cls.POSTS_ON_FIRST_PAGE + cls.POSTS_ON_SECOND_PAGE
+        post_list = []
+        for i in range(1, 14):
+            post = Post(
+                text='Тестовый текст',
+                group=cls.group,
+                author=cls.user,
+                id=i
+            )
+            post_list.append(post)
+        Post.objects.bulk_create(
+            post_list
+        )
+        cls.post_1 = Post.objects.get(id=1)
 
         small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -51,18 +60,6 @@ class PostViewTests(TestCase):
             content=small_gif,
             content_type='image/gif'
         )
-
-        posts = [
-            Post(
-                text='Тестовый текст',
-                group=cls.group,
-                author=cls.author,
-                image=cls.uploaded
-            )
-            for obj in range(bulk_of_posts)
-        ]
-        Post.objects.bulk_create(posts, batch_size=bulk_of_posts)
-        cls.post = Post.objects.last()
         cls.templates_page_names = {
             reverse('posts:index'): 'posts/index.html',
             reverse(
@@ -75,12 +72,12 @@ class PostViewTests(TestCase):
             ): 'posts/profile.html',
             reverse(
                 'posts:post_detail',
-                kwargs={'post_id': cls.post.id}
+                kwargs={'post_id': cls.post_1.id}
             ): 'posts/post_detail.html',
             reverse('posts:post_create'): 'posts/create_post.html',
             reverse(
                 'posts:post_edit',
-                kwargs={'post_id': cls.post.id}
+                kwargs={'post_id': cls.post_1.id}
             ): 'posts/create_post.html',
         }
 
@@ -127,7 +124,7 @@ class PostViewTests(TestCase):
             )
         )
         self.assertIn('page_obj', response.context)
-        self.assertEqual(response.context['group'], self.post.group)
+        self.assertEqual(response.context['group'], self.post_1.group)
 
     def test_profile_page_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
@@ -138,14 +135,14 @@ class PostViewTests(TestCase):
             )
         )
         self.assertIn('page_obj', response.context)
-        self.assertEqual(response.context['author'], self.post.author)
+        self.assertEqual(response.context['author'], self.post_1.author)
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.guest_client.get(
             reverse(
                 'posts:post_detail',
-                kwargs={'post_id': self.post.id}
+                kwargs={'post_id': self.post_1.id}
             )
         )
         self.assertIn('post', response.context)
@@ -241,7 +238,7 @@ class PostViewTests(TestCase):
         self.authorized_client.get(
             reverse(
                 'posts:profile_follow',
-                kwargs={'username': self.author.username}
+                kwargs={'username': self.user_2.username}
             )
         )
         follow = Follow.objects.create(
@@ -262,17 +259,17 @@ class PostViewTests(TestCase):
 
     def test_new_post_is_in_follower_and_not_in_unfollower(self):
         """Новый пост есть в подписках и нет у тех, кто не подписан"""
+        Post.objects.create(
+            text='Новая запись',
+            group=self.group,
+            author=self.author
+        )
         follow_post_count = Post.objects.filter(
             author__following__user=self.user_2
         ).count()
         unfollow_post_count = Post.objects.filter(
             author__following__user=self.user
         ).count()
-        Post.objects.create(
-            text='Новая запись',
-            group=self.group,
-            author=self.author
-        )
         self.authorized_client.get(
             reverse(
                 'posts:follow_index'

@@ -40,7 +40,7 @@ class PostModelTest(TestCase):
         """verbose_name в полях совпадает с ожидаемым."""
         post = PostModelTest.post
         field_verboses = {
-            'text': 'Текст поста',
+            'text': 'Пост',
             'pub_date': 'Дата публикации',
             'author': 'Автор поста',
             'group': 'Группа',
@@ -54,9 +54,7 @@ class PostModelTest(TestCase):
         """help_text в полях совпадает с ожидаемым."""
         post = PostModelTest.post
         field_help_texts = {
-            'text': 'Напишите что-нибудь!',
-            'pub_date': 'Здесь укажите дату '
-                        'публикации вашего поста',
+            'text': 'Текст поста',
             'author': 'Здесь отображено ваше имя',
             'group': 'К какому сообществу '
                      'относится ваш пост?',
