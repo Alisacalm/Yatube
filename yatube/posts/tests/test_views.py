@@ -3,7 +3,7 @@ import tempfile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-# from django.core.cache import cache
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -20,9 +20,9 @@ class PostViewTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='Unfollower')
-        cls.user_2 = User.objects.create_user(username='Follower')
-        cls.author = User.objects.create_user(username='FollowedUser')
+        cls.user = User.objects.create(username='Unfollower')
+        cls.user_2 = User.objects.create(username='Follower')
+        cls.author = User.objects.create(username='FollowedUser')
         cls.group = Group.objects.create(
             title='Группа',
             slug='group',
@@ -210,31 +210,45 @@ class PostViewTests(TestCase):
                 response = self.authorized_client.get(reverse_name)
                 self.assertIn(post, response.context['page_obj'])
 
-    # def test_index_caches(self):
-    #     """Тестирование кеша главной страницы."""
-    #     new_post = Post.objects.create(
-    #         author=self.user,
-    #         text='Пост для теста кеша',
-    #         group=self.group
-    #     )
-    #     response_1 = self.authorized_client.get(
-    #         reverse('posts:index')
-    #     )
-    #     response_content_1 = response_1.content
-    #     new_post.delete()
-    #     response_2 = self.authorized_client.get(
-    #         reverse('posts:index')
-    #     )
-    #     response_content_2 = response_2.content
-    #     self.assertEqual(response_content_1, response_content_2)
-    #     cache.clear()
-    #     response_3 = self.authorized_client.get(
-    #         reverse('posts:index')
-    #     )
-    #     response_content_3 = response_3.content
-    #     self.assertNotEqual(response_content_2, response_content_3)
+    def test_index_caches(self):
+        """Тестирование кеша главной страницы."""
+        new_post = Post.objects.create(
+            author=self.user,
+            text='Пост для теста кеша',
+            group=self.group
+        )
+        response_1 = self.authorized_client.get(
+            reverse('posts:index')
+        )
+        response_content_1 = response_1.content
+        new_post.delete()
+        response_2 = self.authorized_client.get(
+            reverse('posts:index')
+        )
+        response_content_2 = response_2.content
+        self.assertEqual(response_content_1, response_content_2)
+        cache.clear()
+        response_3 = self.authorized_client.get(
+            reverse('posts:index')
+        )
+        response_content_3 = response_3.content
+        self.assertNotEqual(response_content_2, response_content_3)
 
-    def test_auth_can_follow_unfollow(self):
+    def test_auth_can_follow(self):
+        count_follow = Follow.objects.count()
+        Follow.objects.create(
+            user=self.user_2,
+            author=self.author
+        )
+        self.authorized_client.get(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': self.author.username}
+            )
+        )
+        self.assertEqual(Follow.objects.count(), count_follow + 2)
+
+    def test_auth_can_unfollow(self):
         """Авторизованный пользователь может подписываться и отписываться"""
         count_follow = Follow.objects.count()
         follow = Follow.objects.create(

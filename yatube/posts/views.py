@@ -1,13 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-# from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
 from .models import Follow, Group, Post, User
 from .utils import paginate_page
 
 
-# @cache_page(20, key_prefix="index_page")
+@cache_page(20, key_prefix="index_page")
 def index(request):
     posts = Post.objects.all()
     page_obj = paginate_page(request, posts)
@@ -30,9 +30,9 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    following = False
-    if request.user.is_authenticated:
-        following = request.user.follower.filter(author=author).exists()
+    following = request.user.is_authenticated and request.user.follower.filter(
+        author=author
+    ).exists()
     posts = author.posts.all()
     page_obj = paginate_page(request, posts)
     context = {
@@ -131,7 +131,5 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     follow_author = get_object_or_404(User, username=username)
-    data_follow = request.user.follower.filter(author=follow_author)
-    if data_follow.exists():
-        data_follow.delete()
+    Follow.objects.filter(user=request.user, author=follow_author).delete()
     return redirect('posts:profile', username)
